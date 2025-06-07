@@ -8,19 +8,44 @@ export function useSupabaseAuth() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setIsLoading(false);
-    });
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (mounted) {
+          if (sessionError) {
+            console.error('Error getting session:', sessionError);
+            setError(sessionError.message);
+          } else {
+            setSession(session);
+          }
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          console.error('Error in getInitialSession:', err);
+          setError('Failed to initialize authentication');
+          setIsLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setIsLoading(false);
+      if (mounted) {
+        setSession(session);
+        setIsLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -48,7 +73,7 @@ export function useSupabaseAuth() {
       setError(null);
       setIsLoading(true);
       
-      const { error: signUpError, data } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
         password,
         options: {
@@ -60,8 +85,6 @@ export function useSupabaseAuth() {
       });
       
       if (signUpError) throw signUpError;
-
-      // The trigger will automatically create the profile and wallet
       
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create account';
