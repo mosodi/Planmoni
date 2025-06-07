@@ -59,7 +59,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.form}>
-          {error && <InfoBox type="error" message={error} />}
+          {error && <InfoBox type="error\" message={error} />}
 
           <View style={styles.inputGroup}>
             <Text style={commonStyles.label}>Email Address</Text>

@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Info, AlertTriangle, CheckCircle, XCircle } from 'lucide-react-native';
+import { Info, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Circle as XCircle } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface InfoBoxProps {
