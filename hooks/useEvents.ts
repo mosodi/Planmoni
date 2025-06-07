@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -33,6 +33,7 @@ export function useEvents() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { session } = useAuth();
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -76,6 +77,13 @@ export function useEvents() {
   };
 
   const setupRealtimeSubscription = () => {
+    // Clean up existing channel if it exists
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    // Create new channel
     const channel = supabase
       .channel('events_changes')
       .on(
@@ -106,8 +114,14 @@ export function useEvents() {
       )
       .subscribe();
 
+    // Store channel reference
+    channelRef.current = channel;
+
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   };
 
