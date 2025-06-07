@@ -43,7 +43,7 @@ export default function Button({
     >
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator size="small" color={variant === 'outline' ? '#1E3A8A' : '#FFFFFF'} />
+          <ActivityIndicator size="small\" color={variant === 'outline' ? '#1E3A8A' : '#FFFFFF'} />
         ) : (
           <>
             {Icon && <Icon color={variant === 'outline' ? '#1E3A8A' : '#FFFFFF'} size={24} style={styles.icon} />}
