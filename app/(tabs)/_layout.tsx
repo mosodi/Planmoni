@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Settings } from 'lucide-react-native';
+import { Chrome as Home, Settings } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 import { useTheme } from '@/hooks';
 
