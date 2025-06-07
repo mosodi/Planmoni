@@ -1,0 +1,8 @@
+{
+  "name": "zip-extractor",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "yauzl": "^2.10.0"
+  }
+}
