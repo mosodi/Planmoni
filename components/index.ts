@@ -10,5 +10,3 @@ export { default as TransactionModal } from './TransactionModal';
 export { default as DateRangeModal } from './DateRangeModal';
 export { default as AddBankAccountModal } from './AddBankAccountModal';
 export { default as SettingsModal } from './SettingsModal';
-export { default as BaseScreen } from './BaseScreen';
-export { default as Header } from './Header';
