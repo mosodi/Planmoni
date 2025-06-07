@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Card from '@/components/Card';
 import TransactionModal from '@/components/TransactionModal';
 import InitialsAvatar from '@/components/InitialsAvatar';
+import StatusTag from '@/components/StatusTag';
 import { useRoute } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowDown, ArrowDownRight, ArrowRight, ArrowUpRight, Calendar, ChevronDown, ChevronRight, ChevronUp, Eye, EyeOff, Lock, Pause, Play, Plus, Send, Wallet } from 'lucide-react-native';
@@ -11,6 +12,7 @@ import { useBalance } from '@/contexts/BalanceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePayoutPlans } from '@/hooks/usePayoutPlans';
+import { formatCurrency, formatDate, getGreeting, getDaySuffix, calculateProgress } from '@/utils/formatters';
 
 export default function HomeScreen() {
   const { showBalances, toggleBalances, balance, lockedBalance } = useBalance();
@@ -25,7 +27,6 @@ export default function HomeScreen() {
   const params = useLocalSearchParams();
   const scrollY = route.params?.scrollY || new Animated.Value(0);
 
-  // Get user info from session
   const firstName = session?.user?.user_metadata?.first_name || 'User';
   const lastName = session?.user?.user_metadata?.last_name || '';
 
@@ -33,40 +34,15 @@ export default function HomeScreen() {
     const interval = setInterval(() => {
       setCurrentDate(new Date());
     }, 60000);
-
     return () => clearInterval(interval);
   }, []);
 
-  const formatDate = (date: Date) => {
+  const formatCurrentDate = (date: Date) => {
     const day = date.getDate();
     const month = date.toLocaleString('default', { month: 'long' });
     const year = date.getFullYear();
     const suffix = getDaySuffix(day);
     return `${day}${suffix} ${month} ${year}`;
-  };
-
-  const getDaySuffix = (day: number) => {
-    if (day > 3 && day < 21) return 'th';
-    switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
-  };
-
-  const getGreeting = () => {
-    const hour = currentDate.getHours();
-    
-    if (hour >= 5 && hour < 12) {
-      return 'Good morning ☀️';
-    } else if (hour >= 12 && hour < 17) {
-      return 'Good afternoon 🌤️';
-    } else if (hour >= 17 && hour < 21) {
-      return 'Good evening 🌅';
-    } else {
-      return 'Good night 🌙';
-    }
   };
 
   const buttonOpacity = scrollY.interpolate({
@@ -75,32 +51,16 @@ export default function HomeScreen() {
     extrapolate: 'clamp',
   });
 
-  const formatBalance = (amount: number) => {
-    return showBalances ? `₦${amount.toLocaleString()}` : '••••••••';
-  };
-
-  const handleAddFunds = () => {
-    router.push('/add-funds');
-  };
-
-  const handleCreatePayout = () => {
-    router.push('/create-payout/amount');
-  };
-
+  const handleAddFunds = () => router.push('/add-funds');
+  const handleCreatePayout = () => router.push('/create-payout/amount');
   const handleViewPayout = (id?: string) => {
     if (id) {
-      router.push({
-        pathname: '/view-payout',
-        params: { id }
-      });
+      router.push({ pathname: '/view-payout', params: { id } });
     } else {
       router.push('/view-payout');
     }
   };
-
-  const handleViewAllPayouts = () => {
-    router.push('/all-payouts');
-  };
+  const handleViewAllPayouts = () => router.push('/all-payouts');
 
   const handleTransactionPress = (transaction) => {
     setSelectedTransaction({
@@ -124,11 +84,9 @@ export default function HomeScreen() {
     setIsTransactionModalVisible(true);
   };
 
-  // Get active payout plans for display
   const activePlans = payoutPlans.filter(plan => plan.status === 'active').slice(0, 3);
   const nextPayout = activePlans.find(plan => plan.next_payout_date);
 
-  // Calculate summary stats from actual data
   const totalPaidOut = payoutPlans.reduce((sum, plan) => 
     sum + (plan.completed_payouts * plan.payout_amount), 0
   );
@@ -142,6 +100,49 @@ export default function HomeScreen() {
   const completionRate = payoutPlans.length > 0 
     ? Math.round((payoutPlans.filter(plan => plan.status === 'completed').length / payoutPlans.length) * 100)
     : 0;
+
+  const transactions = [
+    {
+      type: 'Monthly Payout',
+      date: 'Dec 1, 2024',
+      time: '9:15 AM',
+      amount: '+₦500,000.00',
+      positive: true,
+      icon: ArrowUpRight,
+    },
+    {
+      type: 'Vault Deposit',
+      date: 'Nov 28, 2024',
+      time: '3:00 PM',
+      amount: '-₦3,000,000.00',
+      positive: false,
+      icon: ArrowDownRight,
+    },
+    {
+      type: 'Rent Payment',
+      date: 'Nov 25, 2024',
+      time: '3:00 PM',
+      amount: '-₦750,000.00',
+      positive: false,
+      icon: ArrowDown,
+    },
+    {
+      type: 'Investment Return',
+      date: 'Nov 22, 2024',
+      time: '11:30 AM',
+      amount: '+₦1,200,000.00',
+      positive: true,
+      icon: ArrowUpRight,
+    },
+    {
+      type: 'Transfer to Savings',
+      date: 'Nov 20, 2024',
+      time: '2:30 PM',
+      amount: '-₦500,000.00',
+      positive: false,
+      icon: ArrowRight,
+    },
+  ];
 
   const styles = createStyles(colors);
 
@@ -164,7 +165,7 @@ export default function HomeScreen() {
               size={48}
               fontSize={18}
             />
-            <Text style={styles.date}>{formatDate(currentDate)}</Text>
+            <Text style={styles.date}>{formatCurrentDate(currentDate)}</Text>
           </View>
           <View style={styles.greetingContainer}>
             <Text style={styles.greeting}>Hi, {firstName}.</Text>
@@ -188,13 +189,13 @@ export default function HomeScreen() {
                 )}
               </Pressable>
             </View>
-            <Text style={styles.balanceAmount}>{formatBalance(balance)}</Text>
+            <Text style={styles.balanceAmount}>{formatCurrency(balance, showBalances)}</Text>
             <View style={styles.lockedSection}>
               <View style={styles.lockedLabelContainer}>
                 <Lock size={16} color={colors.textSecondary} />
                 <Text style={styles.lockedLabel}>Locked for payouts</Text>
               </View>
-              <Text style={styles.lockedAmount}>{formatBalance(lockedBalance)}</Text>
+              <Text style={styles.lockedAmount}>{formatCurrency(lockedBalance, showBalances)}</Text>
             </View>
             <View style={styles.buttonGroup}>
               <Pressable style={styles.createButton} onPress={handleCreatePayout}>
@@ -217,11 +218,11 @@ export default function HomeScreen() {
           <View style={styles.summaryItems}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Total Paid Out</Text>
-              <Text style={styles.summaryValue}>{formatBalance(totalPaidOut)}</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(totalPaidOut, showBalances)}</Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Pending payouts</Text>
-              <Text style={styles.summaryValue}>{formatBalance(pendingPayouts)}</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(pendingPayouts, showBalances)}</Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Completion Rate</Text>
@@ -265,13 +266,9 @@ export default function HomeScreen() {
           <Card style={styles.payoutCard}>
             <View style={styles.payoutHeader}>
               <Text style={styles.payoutTitle}>Next Payout</Text>
-              <View style={styles.activeTag}>
-                <Text style={styles.activeTagText}>
-                  {nextPayout.status === 'active' ? 'Running' : 'Paused'}
-                </Text>
-              </View>
+              <StatusTag status={nextPayout.status as any} />
             </View>
-            <Text style={styles.payoutAmount}>{formatBalance(nextPayout.payout_amount)}</Text>
+            <Text style={styles.payoutAmount}>{formatCurrency(nextPayout.payout_amount, showBalances)}</Text>
             <Text style={styles.payoutDate}>
               {nextPayout.next_payout_date 
                 ? `${new Date(nextPayout.next_payout_date).toLocaleDateString()} • ${Math.ceil((new Date(nextPayout.next_payout_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
@@ -306,33 +303,29 @@ export default function HomeScreen() {
               contentContainerStyle={styles.payoutPlansContainer}
             >
               {activePlans.map((plan) => {
-                const progress = Math.round((plan.completed_payouts / plan.duration) * 100);
+                const progress = calculateProgress(plan.completed_payouts, plan.duration);
                 const completedAmount = plan.completed_payouts * plan.payout_amount;
                 
                 return (
                   <Card key={plan.id} style={styles.payoutPlanCard}>
                     <View style={styles.planHeader}>
                       <Text style={styles.planType}>{plan.name}</Text>
-                      <View style={styles.activeTag}>
-                        <Text style={styles.activeTagText}>
-                          {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
-                        </Text>
-                      </View>
+                      <StatusTag status={plan.status as any} size="small" />
                     </View>
-                    <Text style={styles.planAmount}>{formatBalance(plan.total_amount)}</Text>
+                    <Text style={styles.planAmount}>{formatCurrency(plan.total_amount, showBalances)}</Text>
                     <View style={styles.planDetails}>
                       <Text style={styles.planFrequency}>
                         {plan.frequency.charAt(0).toUpperCase() + plan.frequency.slice(1)}
                       </Text>
                       <Text style={styles.planDot}>•</Text>
-                      <Text style={styles.planValue}>{formatBalance(plan.payout_amount)}</Text>
+                      <Text style={styles.planValue}>{formatCurrency(plan.payout_amount, showBalances)}</Text>
                     </View>
                     <View style={styles.progressBar}>
                       <View style={[styles.progressFill, { width: `${progress}%` }]} />
                     </View>
                     <View style={styles.planProgress}>
                       <Text style={styles.progressText}>
-                        {formatBalance(completedAmount)}/{formatBalance(plan.total_amount)}
+                        {formatCurrency(completedAmount, showBalances)}/{formatCurrency(plan.total_amount, showBalances)}
                       </Text>
                       <Text style={styles.progressCount}>
                         {plan.completed_payouts}/{plan.duration}
@@ -383,48 +376,7 @@ export default function HomeScreen() {
               <Text style={styles.viewAllText}>View All</Text>
             </Pressable>
           </View>
-          {[
-            {
-              type: 'Monthly Payout',
-              date: 'Dec 1, 2024',
-              time: '9:15 AM',
-              amount: '+₦500,000.00',
-              positive: true,
-              icon: ArrowUpRight,
-            },
-            {
-              type: 'Vault Deposit',
-              date: 'Nov 28, 2024',
-              time: '3:00 PM',
-              amount: '-₦3,000,000.00',
-              positive: false,
-              icon: ArrowDownRight,
-            },
-            {
-              type: 'Rent Payment',
-              date: 'Nov 25, 2024',
-              time: '3:00 PM',
-              amount: '-₦750,000.00',
-              positive: false,
-              icon: ArrowDown,
-            },
-            {
-              type: 'Investment Return',
-              date: 'Nov 22, 2024',
-              time: '11:30 AM',
-              amount: '+₦1,200,000.00',
-              positive: true,
-              icon: ArrowUpRight,
-            },
-            {
-              type: 'Transfer to Savings',
-              date: 'Nov 20, 2024',
-              time: '2:30 PM',
-              amount: '-₦500,000.00',
-              positive: false,
-              icon: ArrowRight,
-            },
-          ].map((transaction, index) => (
+          {transactions.map((transaction, index) => (
             <Pressable 
               key={index} 
               onPress={() => handleTransactionPress(transaction)}
@@ -448,7 +400,7 @@ export default function HomeScreen() {
                     styles.transactionAmount,
                     { color: transaction.positive ? '#22C55E' : '#EF4444' }
                   ]}>
-                    {formatBalance(parseFloat(transaction.amount.replace(/[₦,+]/g, '')))}
+                    {formatCurrency(parseFloat(transaction.amount.replace(/[₦,+]/g, '')), showBalances)}
                   </Text>
                 </View>
               </Card>
@@ -708,17 +660,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   payoutTitle: {
     fontSize: 14,
     color: colors.textSecondary,
-  },
-  activeTag: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  activeTagText: {
-    fontSize: 12,
-    color: '#22C55E',
-    fontWeight: '500',
   },
   payoutAmount: {
     fontSize: 24,

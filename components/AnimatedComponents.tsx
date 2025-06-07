@@ -4,19 +4,17 @@ import Animated, {
   withDelay,
   withSequence,
   useAnimatedStyle,
-  withRepeat,
 } from 'react-native-reanimated';
-import { StyleSheet } from 'react-native';
-import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-type ConfettiPieceProps = {
+interface ConfettiPieceProps {
   delay: number;
   x: number;
   y: number;
   color: string;
-};
+}
 
-export default function ConfettiPiece({ delay, x, y, color }: ConfettiPieceProps) {
+export function ConfettiPiece({ delay, x, y, color }: ConfettiPieceProps) {
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -35,12 +33,12 @@ export default function ConfettiPiece({ delay, x, y, color }: ConfettiPieceProps
   });
 
   return (
-    <Animated.View style={[styles.piece, { backgroundColor: color }, animatedStyle]} />
+    <Animated.View style={[styles.confettiPiece, { backgroundColor: color }, animatedStyle]} />
   );
 }
 
 const styles = StyleSheet.create({
-  piece: {
+  confettiPiece: {
     position: 'absolute',
     width: 8,
     height: 8,

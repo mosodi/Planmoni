@@ -1,5 +1,6 @@
 import Button from '@/components/Button';
 import InitialsAvatar from '@/components/InitialsAvatar';
+import SettingsModal from '@/components/SettingsModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBalance } from '@/contexts/BalanceContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -8,14 +9,10 @@ import { Bell, Mail, PencilLine, Phone, User, Building2, Gift, CircleHelp as Hel
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AccountStatementModal from '@/components/AccountStatementModal';
-import HelpCenterModal from '@/components/HelpCenterModal';
-import LanguageModal from '@/components/LanguageModal';
-import LogoutModal from '@/components/LogoutModal';
-import NotificationSettingsModal from '@/components/NotificationSettingsModal';
-import SecurityModal from '@/components/SecurityModal';
-import SupportModal from '@/components/SupportModal';
-import TermsModal from '@/components/TermsModal';
+
+type ModalType = 'account-statement' | 'help-center' | 'language' | 'logout' | 
+                 'notifications' | 'security' | 'support' | 'terms' | 'two-factor' | 
+                 'referral' | 'delete-account' | null;
 
 export default function SettingsScreen() {
   const { session } = useAuth();
@@ -29,45 +26,187 @@ export default function SettingsScreen() {
   const [vaultAlerts, setVaultAlerts] = useState(true);
   const [loginAlerts, setLoginAlerts] = useState(true);
   const [expiryReminders, setExpiryReminders] = useState(false);
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
 
-  // Modal visibility states
-  const [showAccountStatement, setShowAccountStatement] = useState(false);
-  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
-  const [showSecurity, setShowSecurity] = useState(false);
-  const [showHelpCenter, setShowHelpCenter] = useState(false);
-  const [showSupport, setShowSupport] = useState(false);
-  const [showLanguage, setShowLanguage] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [showLogout, setShowLogout] = useState(false);
-  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const handleViewProfile = () => router.push('/profile');
+  const handleViewLinkedAccounts = () => router.push('/linked-accounts');
+  const handleViewReferral = () => router.push('/referral');
+  const handleChangePassword = () => router.push('/change-password');
+  const handleTwoFactorAuth = () => router.push('/two-factor-auth');
+  const handleTransactionLimits = () => router.push('/transaction-limits');
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => setTheme(newTheme);
 
-  const handleViewProfile = () => {
-    router.push('/profile');
-  };
-
-  const handleViewLinkedAccounts = () => {
-    router.push('/linked-accounts');
-  };
-
-  const handleViewReferral = () => {
-    router.push('/referral');
-  };
-
-  const handleChangePassword = () => {
-    router.push('/change-password');
-  };
-
-  const handleTwoFactorAuth = () => {
-    router.push('/two-factor-auth');
-  };
-
-  const handleTransactionLimits = () => {
-    router.push('/transaction-limits');
-  };
-
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
-    setTheme(newTheme);
-  };
+  const settingItems = [
+    // Preferences
+    {
+      section: 'Preferences',
+      items: [
+        {
+          icon: Eye,
+          iconBg: '#EFF6FF',
+          iconColor: '#3B82F6',
+          label: 'Show Dashboard Balances',
+          description: 'Hide or display wallet and vault balances on your dashboard',
+          type: 'switch',
+          value: showBalances,
+          onToggle: toggleBalances,
+        },
+        {
+          icon: Fingerprint,
+          iconBg: '#F0FDF4',
+          iconColor: '#22C55E',
+          label: 'Enable Biometrics',
+          description: 'Use biometrics to sign in or approve vault actions',
+          type: 'switch',
+          value: biometrics,
+          onToggle: setBiometrics,
+        },
+      ],
+    },
+    // Account Management
+    {
+      section: 'Account Management',
+      items: [
+        {
+          icon: Terms,
+          iconBg: colors.backgroundTertiary,
+          iconColor: colors.textSecondary,
+          label: 'Generate Account Statement',
+          description: 'PDF/CSV export, custom range',
+          type: 'modal',
+          modalType: 'account-statement' as ModalType,
+        },
+        {
+          icon: Building2,
+          iconBg: '#F0F9FF',
+          iconColor: '#0EA5E9',
+          label: 'Linked Bank Accounts',
+          description: 'Manage, verify, add/remove',
+          type: 'navigation',
+          onPress: handleViewLinkedAccounts,
+        },
+        {
+          icon: DollarSign,
+          iconBg: '#FEF3C7',
+          iconColor: '#D97706',
+          label: 'Transaction Limits',
+          description: 'Set daily and per-transaction limits',
+          type: 'navigation',
+          onPress: handleTransactionLimits,
+        },
+        {
+          icon: Gift,
+          iconBg: '#FDF2F8',
+          iconColor: '#EC4899',
+          label: 'Referral Program',
+          description: 'Your code & bonuses',
+          type: 'navigation',
+          onPress: handleViewReferral,
+        },
+      ],
+    },
+    // Security
+    {
+      section: 'Security',
+      items: [
+        {
+          icon: Lock,
+          iconBg: '#FEE2E2',
+          iconColor: '#EF4444',
+          label: 'Change Password',
+          type: 'navigation',
+          onPress: handleChangePassword,
+        },
+        {
+          icon: Shield,
+          iconBg: '#F0FDF4',
+          iconColor: '#22C55E',
+          label: 'Two-Factor Authentication',
+          type: 'navigation',
+          onPress: handleTwoFactorAuth,
+        },
+      ],
+    },
+    // Notifications
+    {
+      section: 'Notifications',
+      items: [
+        {
+          icon: Bell,
+          iconBg: '#FEF9C3',
+          iconColor: '#CA8A04',
+          label: 'Vault Payout Alerts',
+          type: 'switch',
+          value: vaultAlerts,
+          onToggle: setVaultAlerts,
+        },
+        {
+          icon: Shield,
+          iconBg: '#EFF6FF',
+          iconColor: '#3B82F6',
+          label: 'New Login Notifications',
+          type: 'switch',
+          value: loginAlerts,
+          onToggle: setLoginAlerts,
+        },
+        {
+          icon: Clock,
+          iconBg: '#F5F3FF',
+          iconColor: '#8B5CF6',
+          label: 'Plan Expiry Reminders',
+          type: 'switch',
+          value: expiryReminders,
+          onToggle: setExpiryReminders,
+        },
+        {
+          icon: Sliders,
+          iconBg: colors.backgroundTertiary,
+          iconColor: colors.textSecondary,
+          label: 'Customize Notifications',
+          type: 'modal',
+          modalType: 'notifications' as ModalType,
+        },
+      ],
+    },
+    // App & Support
+    {
+      section: 'App & Support',
+      items: [
+        {
+          icon: HelpCircle,
+          iconBg: '#FFF7ED',
+          iconColor: '#F97316',
+          label: 'Help Center',
+          type: 'modal',
+          modalType: 'help-center' as ModalType,
+        },
+        {
+          icon: MessageSquare,
+          iconBg: '#EFF6FF',
+          iconColor: '#3B82F6',
+          label: 'Contact Support',
+          type: 'modal',
+          modalType: 'support' as ModalType,
+        },
+        {
+          icon: Languages,
+          iconBg: '#F0FDF4',
+          iconColor: '#22C55E',
+          label: 'Language Preference',
+          type: 'modal',
+          modalType: 'language' as ModalType,
+        },
+        {
+          icon: Terms,
+          iconBg: colors.backgroundTertiary,
+          iconColor: colors.textSecondary,
+          label: 'Terms & Privacy',
+          type: 'modal',
+          modalType: 'terms' as ModalType,
+        },
+      ],
+    },
+  ];
 
   const styles = createStyles(colors);
 
@@ -97,292 +236,89 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={[styles.settingIcon, { backgroundColor: '#EFF6FF' }]}>
-              <Eye size={20} color="#3B82F6" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Show Dashboard Balances</Text>
-              <Text style={styles.settingDescription}>Hide or display wallet and vault balances on your dashboard</Text>
-            </View>
-            <Switch
-              value={showBalances}
-              onValueChange={toggleBalances}
-              trackColor={{ false: colors.borderSecondary, true: '#93C5FD' }}
-              thumbColor={showBalances ? '#3B82F6' : colors.backgroundTertiary}
-            />
+        {settingItems.map((section) => (
+          <View key={section.section} style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.section}</Text>
+            
+            {section.items.map((item, index) => (
+              <View key={index}>
+                {item.type === 'switch' ? (
+                  <View style={styles.settingItem}>
+                    <View style={[styles.settingIcon, { backgroundColor: item.iconBg }]}>
+                      <item.icon size={20} color={item.iconColor} />
+                    </View>
+                    <View style={styles.settingContent}>
+                      <Text style={styles.settingLabel}>{item.label}</Text>
+                      {item.description && (
+                        <Text style={styles.settingDescription}>{item.description}</Text>
+                      )}
+                    </View>
+                    <Switch
+                      value={item.value}
+                      onValueChange={item.onToggle}
+                      trackColor={{ false: colors.borderSecondary, true: '#93C5FD' }}
+                      thumbColor={item.value ? '#3B82F6' : colors.backgroundTertiary}
+                    />
+                  </View>
+                ) : (
+                  <Pressable 
+                    style={styles.settingItem}
+                    onPress={() => {
+                      if (item.type === 'modal') {
+                        setActiveModal(item.modalType);
+                      } else if (item.onPress) {
+                        item.onPress();
+                      }
+                    }}
+                  >
+                    <View style={[styles.settingIcon, { backgroundColor: item.iconBg }]}>
+                      <item.icon size={20} color={item.iconColor} />
+                    </View>
+                    <View style={styles.settingContent}>
+                      <Text style={styles.settingLabel}>{item.label}</Text>
+                      {item.description && (
+                        <Text style={styles.settingDescription}>{item.description}</Text>
+                      )}
+                    </View>
+                    <ChevronRight size={20} color={colors.textTertiary} />
+                  </Pressable>
+                )}
+              </View>
+            ))}
+
+            {section.section === 'App & Support' && (
+              <View style={styles.settingItem}>
+                <View style={[styles.settingIcon, { backgroundColor: colors.backgroundTertiary }]}>
+                  <Moon size={20} color={colors.textSecondary} />
+                </View>
+                <View style={styles.settingContent}>
+                  <Text style={styles.settingLabel}>Theme</Text>
+                  <Text style={styles.settingDescription}>
+                    {theme === 'system' ? 'Follow system' : theme === 'dark' ? 'Dark mode' : 'Light mode'}
+                  </Text>
+                </View>
+                <View style={styles.themeSelector}>
+                  {(['light', 'dark', 'system'] as const).map((themeOption) => (
+                    <Pressable
+                      key={themeOption}
+                      style={[styles.themeOption, theme === themeOption && styles.activeThemeOption]}
+                      onPress={() => handleThemeChange(themeOption)}
+                    >
+                      <Text style={[styles.themeOptionText, theme === themeOption && styles.activeThemeOptionText]}>
+                        {themeOption === 'system' ? 'Auto' : themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
-
-          <View style={styles.settingItem}>
-            <View style={[styles.settingIcon, { backgroundColor: '#F0FDF4' }]}>
-              <Fingerprint size={20} color="#22C55E" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Enable Biometrics</Text>
-              <Text style={styles.settingDescription}>Use biometrics to sign in or approve vault actions</Text>
-            </View>
-            <Switch
-              value={biometrics}
-              onValueChange={setBiometrics}
-              trackColor={{ false: colors.borderSecondary, true: '#93C5FD' }}
-              thumbColor={biometrics ? '#3B82F6' : colors.backgroundTertiary}
-            />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Management</Text>
-          
-          <Pressable 
-            style={styles.settingItem}
-            onPress={() => setShowAccountStatement(true)}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: colors.backgroundTertiary }]}>
-              <Terms size={20} color={colors.textSecondary} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Generate Account Statement</Text>
-              <Text style={styles.settingDescription}>PDF/CSV export, custom range</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-
-          <Pressable 
-            style={styles.settingItem}
-            onPress={handleViewLinkedAccounts}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: '#F0F9FF' }]}>
-              <Building2 size={20} color="#0EA5E9" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Linked Bank Accounts</Text>
-              <Text style={styles.settingDescription}>Manage, verify, add/remove</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-
-          <Pressable 
-            style={styles.settingItem}
-            onPress={handleTransactionLimits}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: '#FEF3C7' }]}>
-              <DollarSign size={20} color="#D97706" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Transaction Limits</Text>
-              <Text style={styles.settingDescription}>Set daily and per-transaction limits</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-
-          <Pressable 
-            style={styles.settingItem}
-            onPress={handleViewReferral}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: '#FDF2F8' }]}>
-              <Gift size={20} color="#EC4899" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Referral Program</Text>
-              <Text style={styles.settingDescription}>Your code & bonuses</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Security</Text>
-          
-          <Pressable 
-            style={styles.settingItem}
-            onPress={handleChangePassword}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: '#FEE2E2' }]}>
-              <Lock size={20} color="#EF4444" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Change Password</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-
-          <Pressable 
-            style={styles.settingItem}
-            onPress={handleTwoFactorAuth}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: '#F0FDF4' }]}>
-              <Shield size={20} color="#22C55E" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Two-Factor Authentication</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={[styles.settingIcon, { backgroundColor: '#FEF9C3' }]}>
-              <Bell size={20} color="#CA8A04" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Vault Payout Alerts</Text>
-            </View>
-            <Switch
-              value={vaultAlerts}
-              onValueChange={setVaultAlerts}
-              trackColor={{ false: colors.borderSecondary, true: '#93C5FD' }}
-              thumbColor={vaultAlerts ? '#3B82F6' : colors.backgroundTertiary}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={[styles.settingIcon, { backgroundColor: '#EFF6FF' }]}>
-              <Shield size={20} color="#3B82F6" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>New Login Notifications</Text>
-            </View>
-            <Switch
-              value={loginAlerts}
-              onValueChange={setLoginAlerts}
-              trackColor={{ false: colors.borderSecondary, true: '#93C5FD' }}
-              thumbColor={loginAlerts ? '#3B82F6' : colors.backgroundTertiary}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={[styles.settingIcon, { backgroundColor: '#F5F3FF' }]}>
-              <Clock size={20} color="#8B5CF6" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Plan Expiry Reminders</Text>
-            </View>
-            <Switch
-              value={expiryReminders}
-              onValueChange={setExpiryReminders}
-              trackColor={{ false: colors.borderSecondary, true: '#93C5FD' }}
-              thumbColor={expiryReminders ? '#3B82F6' : colors.backgroundTertiary}
-            />
-          </View>
-
-          <Pressable 
-            style={styles.settingItem}
-            onPress={() => setShowNotificationSettings(true)}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: colors.backgroundTertiary }]}>
-              <Sliders size={20} color={colors.textSecondary} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Customize Notifications</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App & Support</Text>
-          
-          <Pressable 
-            style={styles.settingItem}
-            onPress={() => setShowHelpCenter(true)}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: '#FFF7ED' }]}>
-              <HelpCircle size={20} color="#F97316" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Help Center</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-
-          <Pressable 
-            style={styles.settingItem}
-            onPress={() => setShowSupport(true)}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: '#EFF6FF' }]}>
-              <MessageSquare size={20} color="#3B82F6" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Contact Support</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-
-          <View style={styles.settingItem}>
-            <View style={[styles.settingIcon, { backgroundColor: colors.backgroundTertiary }]}>
-              <Moon size={20} color={colors.textSecondary} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Theme</Text>
-              <Text style={styles.settingDescription}>
-                {theme === 'system' ? 'Follow system' : theme === 'dark' ? 'Dark mode' : 'Light mode'}
-              </Text>
-            </View>
-            <View style={styles.themeSelector}>
-              <Pressable
-                style={[styles.themeOption, theme === 'light' && styles.activeThemeOption]}
-                onPress={() => handleThemeChange('light')}
-              >
-                <Text style={[styles.themeOptionText, theme === 'light' && styles.activeThemeOptionText]}>
-                  Light
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.themeOption, theme === 'dark' && styles.activeThemeOption]}
-                onPress={() => handleThemeChange('dark')}
-              >
-                <Text style={[styles.themeOptionText, theme === 'dark' && styles.activeThemeOptionText]}>
-                  Dark
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.themeOption, theme === 'system' && styles.activeThemeOption]}
-                onPress={() => handleThemeChange('system')}
-              >
-                <Text style={[styles.themeOptionText, theme === 'system' && styles.activeThemeOptionText]}>
-                  Auto
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <Pressable 
-            style={styles.settingItem}
-            onPress={() => setShowLanguage(true)}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: '#F0FDF4' }]}>
-              <Languages size={20} color="#22C55E" />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Language Preference</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-
-          <Pressable 
-            style={styles.settingItem}
-            onPress={() => setShowTerms(true)}
-          >
-            <View style={[styles.settingIcon, { backgroundColor: colors.backgroundTertiary }]}>
-              <Terms size={20} color={colors.textSecondary} />
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>Terms & Privacy</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textTertiary} />
-          </Pressable>
-        </View>
+        ))}
 
         <View style={styles.footer}>
           <Pressable 
             style={styles.logoutButton}
-            onPress={() => setShowLogout(true)}
+            onPress={() => setActiveModal('logout')}
           >
             <LogOut size={20} color="#EF4444" />
             <Text style={styles.logoutText}>Log Out</Text>
@@ -390,51 +326,17 @@ export default function SettingsScreen() {
 
           <Pressable 
             style={styles.deleteAccount}
-            onPress={() => setShowDeleteAccount(true)}
+            onPress={() => setActiveModal('delete-account')}
           >
             <Text style={styles.deleteText}>Delete Account</Text>
           </Pressable>
         </View>
       </ScrollView>
 
-      <AccountStatementModal
-        isVisible={showAccountStatement}
-        onClose={() => setShowAccountStatement(false)}
-      />
-
-      <NotificationSettingsModal
-        isVisible={showNotificationSettings}
-        onClose={() => setShowNotificationSettings(false)}
-      />
-
-      <SecurityModal
-        isVisible={showSecurity}
-        onClose={() => setShowSecurity(false)}
-      />
-
-      <HelpCenterModal
-        isVisible={showHelpCenter}
-        onClose={() => setShowHelpCenter(false)}
-      />
-
-      <SupportModal
-        isVisible={showSupport}
-        onClose={() => setShowSupport(false)}
-      />
-
-      <LanguageModal
-        isVisible={showLanguage}
-        onClose={() => setShowLanguage(false)}
-      />
-
-      <TermsModal
-        isVisible={showTerms}
-        onClose={() => setShowTerms(false)}
-      />
-
-      <LogoutModal
-        isVisible={showLogout}
-        onClose={() => setShowLogout(false)}
+      <SettingsModal
+        isVisible={activeModal !== null}
+        onClose={() => setActiveModal(null)}
+        type={activeModal || 'help-center'}
       />
     </SafeAreaView>
   );
