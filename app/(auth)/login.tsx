@@ -1,14 +1,17 @@
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Alert } from 'react-native';
 import { router, Link } from 'expo-router';
 import { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react-native';
 import Button from '@/components/Button';
+import ScreenLayout from '@/components/ScreenLayout';
+import InfoBox from '@/components/InfoBox';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { createCommonStyles } from '@/styles/common';
 
 export default function LoginScreen() {
   const { colors } = useTheme();
+  const commonStyles = createCommonStyles(colors);
   const { signIn, isLoading, error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,31 +51,23 @@ export default function LoginScreen() {
   const styles = createStyles(colors);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView 
-        style={styles.scrollView} 
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+    <ScreenLayout scrollable={false}>
+      <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to your Planmoni account</Text>
+          <Text style={commonStyles.title}>Welcome back</Text>
+          <Text style={commonStyles.subtitle}>Sign in to your Planmoni account</Text>
         </View>
 
         <View style={styles.form}>
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
+          {error && <InfoBox type="error" message={error} />}
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={commonStyles.label}>Email Address</Text>
             <View style={[
-              styles.inputContainer,
-              formErrors.email && styles.inputError
+              commonStyles.inputContainer,
+              formErrors.email && commonStyles.inputError
             ]}>
-              <Mail size={20} color={colors.textSecondary} style={styles.inputIcon} />
+              <Mail size={20} color={colors.textSecondary} style={commonStyles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Enter your email"
@@ -96,12 +91,12 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={commonStyles.label}>Password</Text>
             <View style={[
-              styles.inputContainer,
-              formErrors.password && styles.inputError
+              commonStyles.inputContainer,
+              formErrors.password && commonStyles.inputError
             ]}>
-              <Lock size={20} color={colors.textSecondary} style={styles.inputIcon} />
+              <Lock size={20} color={colors.textSecondary} style={commonStyles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Enter your password"
@@ -145,7 +140,7 @@ export default function LoginScreen() {
             title="Sign In"
             onPress={handleLogin}
             loading={isLoading}
-            style={styles.signInButton}
+            style={[commonStyles.buttonBase, commonStyles.primaryButton]}
             icon={ArrowRight}
           />
 
@@ -158,21 +153,14 @@ export default function LoginScreen() {
             </Link>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </ScreenLayout>
   );
 }
 
 const createStyles = (colors: any) => StyleSheet.create({
-  container: {
+  content: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
   },
@@ -180,56 +168,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 48,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
   form: {
     gap: 24,
   },
-  errorContainer: {
-    backgroundColor: colors.errorLight,
-    borderWidth: 1,
-    borderColor: colors.error,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  errorText: {
-    color: colors.error,
-    fontSize: 14,
-    textAlign: 'center',
-  },
   inputGroup: {
     gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputError: {
-    borderColor: colors.error,
-  },
-  inputIcon: {
-    marginRight: 12,
   },
   input: {
     flex: 1,
@@ -254,12 +197,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '500',
-  },
-  signInButton: {
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    marginTop: 8,
   },
   signUpContainer: {
     flexDirection: 'row',
