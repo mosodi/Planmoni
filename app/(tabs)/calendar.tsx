@@ -2,22 +2,12 @@ import Card from '@/components/Card';
 import { router } from 'expo-router';
 import { TriangleAlert as AlertTriangle, Check, ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useCalendarEvents, CalendarEvent } from '@/hooks/useCalendarEvents';
 
 type ViewType = 'month' | 'week' | 'list';
-
-type Event = {
-  id: string;
-  title: string;
-  amount: string;
-  time: string;
-  type: 'completed' | 'pending' | 'scheduled' | 'failed' | 'expiring';
-  description: string;
-  vault?: string;
-  date: string;
-};
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -25,6 +15,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 export default function CalendarScreen() {
   const { width } = useWindowDimensions();
   const { colors } = useTheme();
+  const { events, isLoading, error, refreshEvents } = useCalendarEvents();
   const [activeView, setActiveView] = useState<ViewType>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -47,51 +38,11 @@ export default function CalendarScreen() {
     return Math.max(48, Math.min(cellWidth, 80));
   }, [width]);
 
-  const events: Event[] = [
-    {
-      id: '1',
-      title: '₦500,000 disbursed',
-      amount: '₦500,000',
-      time: '9:00 AM',
-      type: 'completed',
-      description: 'From Vault "Monthly Salary"',
-      vault: 'Monthly Salary',
-      date: 'December 15, 2024',
-    },
-    {
-      id: '2',
-      title: 'Recurring payout scheduled',
-      amount: '₦750,000',
-      time: '3:00 PM',
-      type: 'scheduled',
-      description: 'Next month',
-      date: 'December 15, 2024',
-    },
-    {
-      id: '3',
-      title: 'Rent payment scheduled',
-      amount: '₦200,000',
-      time: '3:00 PM',
-      type: 'scheduled',
-      description: 'Monthly rent',
-      date: 'December 17, 2024',
-    },
-    {
-      id: '4',
-      title: 'Vault funding failed',
-      amount: '₦100,000',
-      time: '11:30 AM',
-      type: 'failed',
-      description: 'Insufficient balance',
-      date: 'December 20, 2024',
-    },
-  ];
-
   const handleCreatePayout = () => {
     router.push('/create-payout/amount');
   };
 
-  const getEventIcon = (type: Event['type']) => {
+  const getEventIcon = (type: CalendarEvent['type']) => {
     switch (type) {
       case 'completed':
         return <Check size={20} color="#22C55E" />;
@@ -104,26 +55,28 @@ export default function CalendarScreen() {
     }
   };
 
-  const getEventColor = (type: Event['type']) => {
+  const getEventColor = (type: CalendarEvent['type']) => {
     switch (type) {
       case 'completed':
-        return '#22C55E';
+        return '#22C55E'; // Green for completed payouts
       case 'pending':
+        return '#3B82F6'; // Blue for payout created
       case 'scheduled':
-        return '#3B82F6';
+        return '#EAB308'; // Yellow for scheduled payouts
       case 'failed':
       case 'expiring':
-        return '#EF4444';
+        return '#EF4444'; // Red for failed/expiring payouts
     }
   };
 
-  const getEventBackground = (type: Event['type']) => {
+  const getEventBackground = (type: CalendarEvent['type']) => {
     switch (type) {
       case 'completed':
         return '#F0FDF4';
       case 'pending':
-      case 'scheduled':
         return '#F0F9FF';
+      case 'scheduled':
+        return '#FEFCE8';
       case 'failed':
       case 'expiring':
         return '#FEF2F2';
@@ -173,6 +126,66 @@ export default function CalendarScreen() {
   };
 
   const styles = createStyles(colors);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Calendar</Text>
+          <View style={styles.headerActions}>
+            <Pressable 
+              style={styles.todayButton}
+              onPress={() => {
+                const today = new Date();
+                setCurrentDate(today);
+                setSelectedDate(today);
+              }}
+            >
+              <Text style={styles.todayButtonText}>Today</Text>
+            </Pressable>
+            <Pressable style={styles.createButton} onPress={handleCreatePayout}>
+              <Plus size={20} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading calendar events...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Calendar</Text>
+          <View style={styles.headerActions}>
+            <Pressable 
+              style={styles.todayButton}
+              onPress={() => {
+                const today = new Date();
+                setCurrentDate(today);
+                setSelectedDate(today);
+              }}
+            >
+              <Text style={styles.todayButtonText}>Today</Text>
+            </Pressable>
+            <Pressable style={styles.createButton} onPress={handleCreatePayout}>
+              <Plus size={20} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable style={styles.retryButton} onPress={refreshEvents}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const renderMonthView = () => {
     const daysInMonth = getDaysInMonth(currentDate);
@@ -267,12 +280,22 @@ export default function CalendarScreen() {
                 <View style={styles.eventDetails}>
                   <Text style={styles.eventTitle}>{event.title}</Text>
                   <Text style={styles.eventDescription}>
-                    {event.vault ? `From Vault '${event.vault}'` : event.description} • {event.time}
+                    {event.description} • {event.time}
                   </Text>
                 </View>
-                <Pressable style={styles.eventAction}>
+                <Pressable 
+                  style={styles.eventAction}
+                  onPress={() => {
+                    if (event.payout_plan_id) {
+                      router.push({
+                        pathname: '/view-payout',
+                        params: { id: event.payout_plan_id }
+                      });
+                    }
+                  }}
+                >
                   <Text style={[styles.eventActionText, { color: getEventColor(event.type) }]}>
-                    {event.vault ? 'View Vault' : 'Details'}
+                    {event.vault ? 'View Plan' : 'Details'}
                   </Text>
                 </Pressable>
               </View>
@@ -395,12 +418,22 @@ export default function CalendarScreen() {
                 <View style={styles.eventDetails}>
                   <Text style={styles.eventTitle}>{event.title}</Text>
                   <Text style={styles.eventDescription}>
-                    {event.vault ? `From Vault '${event.vault}'` : event.description} • {event.time}
+                    {event.description} • {event.time}
                   </Text>
                 </View>
-                <Pressable style={styles.eventAction}>
+                <Pressable 
+                  style={styles.eventAction}
+                  onPress={() => {
+                    if (event.payout_plan_id) {
+                      router.push({
+                        pathname: '/view-payout',
+                        params: { id: event.payout_plan_id }
+                      });
+                    }
+                  }}
+                >
                   <Text style={[styles.eventActionText, { color: getEventColor(event.type) }]}>
-                    {event.vault ? 'View Vault' : 'Details'}
+                    {event.vault ? 'View Plan' : 'Details'}
                   </Text>
                 </Pressable>
               </View>
@@ -443,7 +476,7 @@ export default function CalendarScreen() {
       }
       acc[date].push(event);
       return acc;
-    }, {} as Record<string, Event[]>);
+    }, {} as Record<string, CalendarEvent[]>);
 
     return (
       <View style={styles.listViewContainer}>
@@ -458,7 +491,17 @@ export default function CalendarScreen() {
             <View style={styles.eventsContainer}>
               {dateEvents.map((event) => (
                 <Card key={event.id} style={[styles.eventCard, { backgroundColor: getEventBackground(event.type) }]}>
-                  <Pressable style={styles.eventContent}>
+                  <Pressable 
+                    style={styles.eventContent}
+                    onPress={() => {
+                      if (event.payout_plan_id) {
+                        router.push({
+                          pathname: '/view-payout',
+                          params: { id: event.payout_plan_id }
+                        });
+                      }
+                    }}
+                  >
                     <View style={[styles.eventIcon, { backgroundColor: getEventBackground(event.type) }]}>
                       {getEventIcon(event.type)}
                     </View>
@@ -592,6 +635,39 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.error,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   viewSelector: {
     flexDirection: 'row',
