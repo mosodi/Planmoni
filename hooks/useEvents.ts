@@ -37,7 +37,7 @@ export function useEvents() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchEvents();
-      setupRealtimeSubscription();
+      return setupRealtimeSubscription();
     }
   }, [session?.user?.id]);
 
