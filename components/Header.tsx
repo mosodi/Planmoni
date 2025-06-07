@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import { colors, shadows } from '@/constants/theme';
-import { ChevronLeft } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { ArrowLeft } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { useTheme } from '@/hooks';
 
 interface HeaderProps {
   title: string;
@@ -9,24 +9,18 @@ interface HeaderProps {
   rightElement?: React.ReactNode;
 }
 
-export default function Header({ title, showBack = false, rightElement }: HeaderProps) {
-  const router = useRouter();
+export default function Header({ title, showBack, rightElement }: HeaderProps) {
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.header}>
-      <View style={styles.leftContainer}>
-        {showBack && (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ChevronLeft size={24} color={colors.gray[900]} />
-          </TouchableOpacity>
-        )}
-        <Text style={styles.title}>{title}</Text>
-      </View>
-      {rightElement && (
-        <View style={styles.rightContainer}>
-          {rightElement}
-        </View>
+    <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      {showBack && (
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color={colors.text} />
+        </Pressable>
       )}
+      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+      {rightElement}
     </View>
   );
 }
@@ -34,30 +28,21 @@ export default function Header({ title, showBack = false, rightElement }: Header
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray[200],
-    ...shadows.sm,
-  },
-  leftContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  rightContainer: {
-    marginLeft: 16,
   },
   backButton: {
-    marginRight: 12,
-    padding: 4,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   title: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 20,
-    color: colors.gray[900],
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
   },
 });

@@ -1,106 +1,127 @@
 import { TriangleAlert as AlertTriangle, Calendar, Check, Download, Shield, Smartphone, Wallet } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useEvents } from '@/hooks/useEvents';
-import { router } from 'expo-router';
 
-type NotificationType = 'all' | 'payout_completed' | 'payout_scheduled' | 'vault_created' | 'disbursement_failed' | 'security_alert';
+type NotificationType = 'all' | 'payouts' | 'vaults' | 'security';
 
 export default function NotificationsScreen() {
   const { colors } = useTheme();
-  const { events, isLoading, markEventAsRead, markAllAsRead } = useEvents();
   const [activeFilter, setActiveFilter] = useState<NotificationType>('all');
 
-  const filteredEvents = events.filter(event => 
-    activeFilter === 'all' || event.type === activeFilter
+  const notifications = [
+    {
+      id: '1',
+      type: 'Payout Completed',
+      message: '₦500,000 disbursed to your bank from \'Rent Vault\'',
+      status: 'Success',
+      statusColor: '#22C55E',
+      statusBg: '#DCFCE7',
+      time: '2h ago',
+      icon: Wallet,
+      iconBg: '#DCFCE7',
+      iconColor: '#22C55E',
+      unread: true,
+      category: 'payouts',
+    },
+    {
+      id: '2',
+      type: 'Upcoming Payout',
+      message: 'Next payout from \'Salary Vault\' is in 3 days',
+      status: 'Scheduled',
+      statusColor: '#3B82F6',
+      statusBg: '#EFF6FF',
+      time: '5h ago',
+      icon: Calendar,
+      iconBg: '#EFF6FF',
+      iconColor: '#3B82F6',
+      unread: true,
+      category: 'payouts',
+    },
+    {
+      id: '3',
+      type: 'New Vault Created',
+      message: 'You created a new vault: \'Emergency Fund\'',
+      time: '1d ago',
+      icon: Shield,
+      iconBg: '#F0F9FF',
+      iconColor: '#0EA5E9',
+      unread: true,
+      category: 'vaults',
+    },
+    {
+      id: '4',
+      type: 'Disbursement Failed',
+      message: 'Disbursement from \'Car Fund\' failed due to insufficient balance',
+      status: 'Failed',
+      statusColor: '#EF4444',
+      statusBg: '#FEE2E2',
+      time: '2d ago',
+      icon: AlertTriangle,
+      iconBg: '#FEE2E2',
+      iconColor: '#EF4444',
+      category: 'payouts',
+    },
+    {
+      id: '5',
+      type: 'Security Reminder',
+      message: 'Set up 2FA to better secure your account',
+      time: '3d ago',
+      icon: Shield,
+      iconBg: '#FEF3C7',
+      iconColor: '#D97706',
+      unread: true,
+      category: 'security',
+    },
+    {
+      id: '6',
+      type: 'Vault Matured',
+      message: 'Vault \'School Fees\' has matured and funds are being disbursed',
+      time: '1w ago',
+      icon: Check,
+      iconBg: '#DCFCE7',
+      iconColor: '#22C55E',
+      category: 'vaults',
+    },
+    {
+      id: '7',
+      type: 'App Update Available',
+      message: 'Version 2.1.0 is now available with new features',
+      time: '1w ago',
+      icon: Smartphone,
+      iconBg: '#F1F5F9',
+      iconColor: '#64748B',
+      category: 'security',
+    },
+    {
+      id: '8',
+      type: 'Funds Added',
+      message: '₦1,000,000 added to your wallet balance',
+      time: '2w ago',
+      icon: Download,
+      iconBg: '#DCFCE7',
+      iconColor: '#22C55E',
+      category: 'vaults',
+    },
+  ];
+
+  const filteredNotifications = notifications.filter(
+    notification => activeFilter === 'all' || notification.category === activeFilter
   );
 
-  const handleEventPress = async (event: any) => {
-    // Mark as read if unread
-    if (event.status === 'unread') {
-      await markEventAsRead(event.id);
-    }
-
-    // Navigate to relevant screen
-    if (event.payout_plan_id) {
-      router.push({
-        pathname: '/view-payout',
-        params: { id: event.payout_plan_id }
-      });
-    } else if (event.transaction_id) {
-      router.push('/transactions');
-    }
-  };
-
-  const getEventIcon = (type: string) => {
-    switch (type) {
-      case 'payout_completed':
-        return { icon: Wallet, bg: '#DCFCE7', color: '#22C55E' };
-      case 'payout_scheduled':
-        return { icon: Calendar, bg: '#EFF6FF', color: '#3B82F6' };
-      case 'vault_created':
-        return { icon: Shield, bg: '#F0F9FF', color: '#0EA5E9' };
-      case 'disbursement_failed':
-        return { icon: AlertTriangle, bg: '#FEE2E2', color: '#EF4444' };
-      case 'security_alert':
-        return { icon: Shield, bg: '#FEF3C7', color: '#D97706' };
-      default:
-        return { icon: Smartphone, bg: '#F1F5F9', color: '#64748B' };
-    }
-  };
-
-  const getStatusTag = (type: string) => {
-    switch (type) {
-      case 'payout_completed':
-        return { text: 'Completed', bg: '#DCFCE7', color: '#22C55E' };
-      case 'payout_scheduled':
-        return { text: 'Scheduled', bg: '#EFF6FF', color: '#3B82F6' };
-      case 'disbursement_failed':
-        return { text: 'Failed', bg: '#FEE2E2', color: '#EF4444' };
-      default:
-        return null;
-    }
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    
-    const diffInWeeks = Math.floor(diffInDays / 7);
-    return `${diffInWeeks}w ago`;
+  const handleMarkAllAsRead = () => {
+    // Implement mark all as read functionality
   };
 
   const styles = createStyles(colors);
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Notifications</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading notifications...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>Notifications</Text>
-          <Pressable style={styles.markAllButton} onPress={markAllAsRead}>
+          <Pressable style={styles.markAllButton} onPress={handleMarkAllAsRead}>
             <Text style={styles.markAllText}>Mark all as read</Text>
           </Pressable>
         </View>
@@ -119,26 +140,26 @@ export default function NotificationsScreen() {
             </Text>
           </Pressable>
           <Pressable 
-            style={[styles.filterButton, activeFilter === 'payout_completed' && styles.activeFilterButton]}
-            onPress={() => setActiveFilter('payout_completed')}
+            style={[styles.filterButton, activeFilter === 'payouts' && styles.activeFilterButton]}
+            onPress={() => setActiveFilter('payouts')}
           >
-            <Text style={[styles.filterText, activeFilter === 'payout_completed' && styles.activeFilterText]}>
+            <Text style={[styles.filterText, activeFilter === 'payouts' && styles.activeFilterText]}>
               Payouts
             </Text>
           </Pressable>
           <Pressable 
-            style={[styles.filterButton, activeFilter === 'vault_created' && styles.activeFilterButton]}
-            onPress={() => setActiveFilter('vault_created')}
+            style={[styles.filterButton, activeFilter === 'vaults' && styles.activeFilterButton]}
+            onPress={() => setActiveFilter('vaults')}
           >
-            <Text style={[styles.filterText, activeFilter === 'vault_created' && styles.activeFilterText]}>
+            <Text style={[styles.filterText, activeFilter === 'vaults' && styles.activeFilterText]}>
               Vaults
             </Text>
           </Pressable>
           <Pressable 
-            style={[styles.filterButton, activeFilter === 'security_alert' && styles.activeFilterButton]}
-            onPress={() => setActiveFilter('security_alert')}
+            style={[styles.filterButton, activeFilter === 'security' && styles.activeFilterButton]}
+            onPress={() => setActiveFilter('security')}
           >
-            <Text style={[styles.filterText, activeFilter === 'security_alert' && styles.activeFilterText]}>
+            <Text style={[styles.filterText, activeFilter === 'security' && styles.activeFilterText]}>
               Security
             </Text>
           </Pressable>
@@ -146,54 +167,31 @@ export default function NotificationsScreen() {
       </View>
 
       <ScrollView style={styles.notificationsList}>
-        {filteredEvents.length === 0 ? (
-          <View style={styles.emptyState}>
-            <AlertTriangle size={48} color={colors.textTertiary} />
-            <Text style={styles.emptyTitle}>No notifications</Text>
-            <Text style={styles.emptySubtext}>
-              {activeFilter === 'all' 
-                ? 'You\'re all caught up! New notifications will appear here.'
-                : `No ${activeFilter.replace('_', ' ')} notifications found.`
-              }
-            </Text>
-          </View>
-        ) : (
-          filteredEvents.map((event) => {
-            const iconConfig = getEventIcon(event.type);
-            const statusTag = getStatusTag(event.type);
-            const Icon = iconConfig.icon;
-
-            return (
-              <Pressable 
-                key={event.id} 
-                style={[
-                  styles.notification, 
-                  event.status === 'unread' && styles.unreadNotification
-                ]}
-                onPress={() => handleEventPress(event)}
-              >
-                <View style={[styles.notificationIcon, { backgroundColor: iconConfig.bg }]}>
-                  <Icon size={20} color={iconConfig.color} />
+        {filteredNotifications.map((notification) => (
+          <Pressable 
+            key={notification.id} 
+            style={[styles.notification, notification.unread && styles.unreadNotification]}
+          >
+            <View style={[styles.notificationIcon, { backgroundColor: notification.iconBg }]}>
+              <notification.icon size={20} color={notification.iconColor} />
+            </View>
+            <View style={styles.notificationContent}>
+              <View style={styles.notificationHeader}>
+                <Text style={styles.notificationType}>{notification.type}</Text>
+                <Text style={styles.notificationTime}>{notification.time}</Text>
+              </View>
+              <Text style={styles.notificationMessage}>{notification.message}</Text>
+              {notification.status && (
+                <View style={[styles.statusTag, { backgroundColor: notification.statusBg }]}>
+                  <Text style={[styles.statusText, { color: notification.statusColor }]}>
+                    {notification.status}
+                  </Text>
                 </View>
-                <View style={styles.notificationContent}>
-                  <View style={styles.notificationHeader}>
-                    <Text style={styles.notificationType}>{event.title}</Text>
-                    <Text style={styles.notificationTime}>{formatTimeAgo(event.created_at)}</Text>
-                  </View>
-                  <Text style={styles.notificationMessage}>{event.description}</Text>
-                  {statusTag && (
-                    <View style={[styles.statusTag, { backgroundColor: statusTag.bg }]}>
-                      <Text style={[styles.statusText, { color: statusTag.color }]}>
-                        {statusTag.text}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                {event.status === 'unread' && <View style={styles.unreadDot} />}
-              </Pressable>
-            );
-          })
-        )}
+              )}
+            </View>
+            {notification.unread && <View style={styles.unreadDot} />}
+          </Pressable>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -230,16 +228,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.primary,
     fontWeight: '500',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
   filterContent: {
     paddingHorizontal: 16,
     paddingBottom: 16,
@@ -266,25 +254,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   notificationsList: {
     flex: 1,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
   },
   notification: {
     flexDirection: 'row',
@@ -319,12 +288,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    flex: 1,
   },
   notificationTime: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginLeft: 8,
   },
   notificationMessage: {
     fontSize: 14,

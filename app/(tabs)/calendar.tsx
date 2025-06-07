@@ -1,14 +1,23 @@
 import Card from '@/components/Card';
 import { router } from 'expo-router';
-import { TriangleAlert as AlertTriangle, Check, ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, Bell } from 'lucide-react-native';
+import { TriangleAlert as AlertTriangle, Check, ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useEvents } from '@/hooks/useEvents';
-import { useBalance } from '@/contexts/BalanceContext';
 
 type ViewType = 'month' | 'week' | 'list';
+
+type Event = {
+  id: string;
+  title: string;
+  amount: string;
+  time: string;
+  type: 'completed' | 'pending' | 'scheduled' | 'failed' | 'expiring';
+  description: string;
+  vault?: string;
+  date: string;
+};
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -16,8 +25,6 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 export default function CalendarScreen() {
   const { width } = useWindowDimensions();
   const { colors } = useTheme();
-  const { events, isLoading, markEventAsRead } = useEvents();
-  const { showBalances } = useBalance();
   const [activeView, setActiveView] = useState<ViewType>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -40,55 +47,51 @@ export default function CalendarScreen() {
     return Math.max(48, Math.min(cellWidth, 80));
   }, [width]);
 
-  // Transform events into calendar format
-  const calendarEvents = useMemo(() => {
-    return events.map(event => {
-      const eventDate = new Date(event.created_at);
-      const dateString = `${MONTHS[eventDate.getMonth()]} ${eventDate.getDate()}, ${eventDate.getFullYear()}`;
-      
-      return {
-        id: event.id,
-        title: event.title,
-        amount: event.payout_plans?.payout_amount 
-          ? (showBalances ? `₦${event.payout_plans.payout_amount.toLocaleString()}` : '••••••••')
-          : event.transactions?.amount 
-            ? (showBalances ? `₦${event.transactions.amount.toLocaleString()}` : '••••••••')
-            : '',
-        time: eventDate.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit', 
-          hour12: true 
-        }),
-        type: getEventType(event.type),
-        description: event.description || '',
-        vault: event.payout_plans?.name,
-        date: dateString,
-        status: event.status,
-        rawEvent: event,
-      };
-    });
-  }, [events, showBalances]);
-
-  function getEventType(type: string): 'completed' | 'pending' | 'scheduled' | 'failed' | 'expiring' {
-    switch (type) {
-      case 'payout_completed':
-        return 'completed';
-      case 'payout_scheduled':
-        return 'scheduled';
-      case 'disbursement_failed':
-        return 'failed';
-      case 'security_alert':
-        return 'expiring';
-      default:
-        return 'pending';
-    }
-  }
+  const events: Event[] = [
+    {
+      id: '1',
+      title: '₦500,000 disbursed',
+      amount: '₦500,000',
+      time: '9:00 AM',
+      type: 'completed',
+      description: 'From Vault "Monthly Salary"',
+      vault: 'Monthly Salary',
+      date: 'December 15, 2024',
+    },
+    {
+      id: '2',
+      title: 'Recurring payout scheduled',
+      amount: '₦750,000',
+      time: '3:00 PM',
+      type: 'scheduled',
+      description: 'Next month',
+      date: 'December 15, 2024',
+    },
+    {
+      id: '3',
+      title: 'Rent payment scheduled',
+      amount: '₦200,000',
+      time: '3:00 PM',
+      type: 'scheduled',
+      description: 'Monthly rent',
+      date: 'December 17, 2024',
+    },
+    {
+      id: '4',
+      title: 'Vault funding failed',
+      amount: '₦100,000',
+      time: '11:30 AM',
+      type: 'failed',
+      description: 'Insufficient balance',
+      date: 'December 20, 2024',
+    },
+  ];
 
   const handleCreatePayout = () => {
     router.push('/create-payout/amount');
   };
 
-  const getEventIcon = (type: 'completed' | 'pending' | 'scheduled' | 'failed' | 'expiring') => {
+  const getEventIcon = (type: Event['type']) => {
     switch (type) {
       case 'completed':
         return <Check size={20} color="#22C55E" />;
@@ -101,7 +104,7 @@ export default function CalendarScreen() {
     }
   };
 
-  const getEventColor = (type: 'completed' | 'pending' | 'scheduled' | 'failed' | 'expiring') => {
+  const getEventColor = (type: Event['type']) => {
     switch (type) {
       case 'completed':
         return '#22C55E';
@@ -114,7 +117,7 @@ export default function CalendarScreen() {
     }
   };
 
-  const getEventBackground = (type: 'completed' | 'pending' | 'scheduled' | 'failed' | 'expiring') => {
+  const getEventBackground = (type: Event['type']) => {
     switch (type) {
       case 'completed':
         return '#F0FDF4';
@@ -166,41 +169,10 @@ export default function CalendarScreen() {
 
   const getEventsForDate = (date: Date) => {
     const dateString = formatDate(date);
-    return calendarEvents.filter(event => event.date === dateString);
-  };
-
-  const handleEventPress = async (event: any) => {
-    // Mark event as read if it's unread
-    if (event.status === 'unread') {
-      await markEventAsRead(event.id);
-    }
-
-    // Navigate to relevant screen based on event type
-    if (event.rawEvent.payout_plan_id) {
-      router.push({
-        pathname: '/view-payout',
-        params: { id: event.rawEvent.payout_plan_id }
-      });
-    } else if (event.rawEvent.transaction_id) {
-      router.push('/transactions');
-    }
+    return events.filter(event => event.date === dateString);
   };
 
   const styles = createStyles(colors);
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Calendar</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading events...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   const renderMonthView = () => {
     const daysInMonth = getDaysInMonth(currentDate);
@@ -265,13 +237,9 @@ export default function CalendarScreen() {
                           style={[
                             styles.eventDot,
                             { backgroundColor: getEventColor(event.type) },
-                            event.status === 'unread' && styles.unreadEventDot,
                           ]}
                         />
                       ))}
-                      {dayEvents.length > 2 && (
-                        <Text style={styles.moreEventsText}>+{dayEvents.length - 2}</Text>
-                      )}
                     </View>
                   )}
                 </Pressable>
@@ -291,43 +259,25 @@ export default function CalendarScreen() {
           </View>
 
           {getEventsForDate(selectedDate).map(event => (
-            <Pressable key={event.id} onPress={() => handleEventPress(event)}>
-              <Card style={[
-                styles.eventCard, 
-                { backgroundColor: getEventBackground(event.type) },
-                event.status === 'unread' && styles.unreadEventCard
-              ]}>
-                <View style={styles.eventContent}>
-                  <View style={[styles.eventIcon, { backgroundColor: getEventBackground(event.type) }]}>
-                    {getEventIcon(event.type)}
-                  </View>
-                  <View style={styles.eventDetails}>
-                    <View style={styles.eventTitleRow}>
-                      <Text style={styles.eventTitle}>{event.title}</Text>
-                      {event.status === 'unread' && (
-                        <View style={styles.unreadBadge}>
-                          <Bell size={12} color={colors.primary} />
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.eventDescription}>
-                      {event.vault ? `From Vault '${event.vault}'` : event.description} • {event.time}
-                    </Text>
-                    {event.amount && (
-                      <Text style={styles.eventAmount}>{event.amount}</Text>
-                    )}
-                  </View>
+            <Card key={event.id} style={[styles.eventCard, { backgroundColor: getEventBackground(event.type) }]}>
+              <View style={styles.eventContent}>
+                <View style={[styles.eventIcon, { backgroundColor: getEventBackground(event.type) }]}>
+                  {getEventIcon(event.type)}
                 </View>
-              </Card>
-            </Pressable>
+                <View style={styles.eventDetails}>
+                  <Text style={styles.eventTitle}>{event.title}</Text>
+                  <Text style={styles.eventDescription}>
+                    {event.vault ? `From Vault '${event.vault}'` : event.description} • {event.time}
+                  </Text>
+                </View>
+                <Pressable style={styles.eventAction}>
+                  <Text style={[styles.eventActionText, { color: getEventColor(event.type) }]}>
+                    {event.vault ? 'View Vault' : 'Details'}
+                  </Text>
+                </Pressable>
+              </View>
+            </Card>
           ))}
-
-          {getEventsForDate(selectedDate).length === 0 && (
-            <View style={styles.noEventsContainer}>
-              <CalendarIcon size={48} color={colors.textTertiary} />
-              <Text style={styles.noEventsText}>No events for this date</Text>
-            </View>
-          )}
         </View>
 
         <View style={styles.legend}>
@@ -335,15 +285,147 @@ export default function CalendarScreen() {
           <View style={styles.legendItems}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} />
-              <Text style={styles.legendText}>Payout completed</Text>
+              <Text style={styles.legendText}>Payout received</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: '#3B82F6' }]} />
-              <Text style={styles.legendText}>Payout scheduled</Text>
+              <Text style={styles.legendText}>Payout created</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#EAB308' }]} />
+              <Text style={styles.legendText}>Scheduled payout</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-              <Text style={styles.legendText}>Failed/Alert</Text>
+              <Text style={styles.legendText}>Payout expiring</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderWeekView = () => {
+    const weekStart = new Date(selectedDate);
+    weekStart.setDate(selectedDate.getDate() - selectedDate.getDay());
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+      return date;
+    });
+    
+    return (
+      <View>
+        <View style={styles.weekHeader}>
+          <Text style={styles.weekTitle}>
+            {formatDate(weekStart)} - {formatDate(weekDays[6])}
+          </Text>
+          <View style={styles.monthNavigation}>
+            <Pressable style={styles.navigationButton}>
+              <ChevronLeft size={20} color={colors.textSecondary} />
+            </Pressable>
+            <Pressable style={styles.navigationButton}>
+              <ChevronRight size={20} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.weekDaysGrid}>
+          {weekDays.map(date => {
+            const dayEvents = getEventsForDate(date);
+            const isSelectedDay = isSelected(date);
+            const isTodayDate = isToday(date);
+
+            return (
+              <Pressable
+                key={date.getTime()}
+                style={[
+                  styles.weekDayCell,
+                  { width: weekCellSize },
+                  isSelectedDay && styles.selectedWeekDay,
+                  isTodayDate && styles.todayDay,
+                ]}
+                onPress={() => handleDateSelect(date)}>
+                <Text style={[
+                  styles.weekDayName,
+                  isSelectedDay && styles.selectedWeekDayText,
+                  isTodayDate && styles.todayDayText,
+                ]}>{DAYS[date.getDay()]}</Text>
+                <Text style={[
+                  styles.weekDayNumber,
+                  isSelectedDay && styles.selectedWeekDayText,
+                  isTodayDate && styles.todayDayText,
+                ]}>{date.getDate()}</Text>
+                {dayEvents.length > 0 && (
+                  <View style={styles.weekEventDots}>
+                    {dayEvents.slice(0, 2).map((event, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.eventDot,
+                          { backgroundColor: getEventColor(event.type) },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View style={styles.selectedDateEvents}>
+          <View style={styles.selectedDateHeader}>
+            <Text style={styles.selectedDateTitle}>
+              {DAYS[selectedDate.getDay()]}, {formatDate(selectedDate)}
+            </Text>
+            <View style={styles.eventCount}>
+              <Text style={styles.eventCountText}>
+                {getEventsForDate(selectedDate).length} events
+              </Text>
+            </View>
+          </View>
+
+          {getEventsForDate(selectedDate).map(event => (
+            <Card key={event.id} style={[styles.eventCard, { backgroundColor: getEventBackground(event.type) }]}>
+              <View style={styles.eventContent}>
+                <View style={[styles.eventIcon, { backgroundColor: getEventBackground(event.type) }]}>
+                  {getEventIcon(event.type)}
+                </View>
+                <View style={styles.eventDetails}>
+                  <Text style={styles.eventTitle}>{event.title}</Text>
+                  <Text style={styles.eventDescription}>
+                    {event.vault ? `From Vault '${event.vault}'` : event.description} • {event.time}
+                  </Text>
+                </View>
+                <Pressable style={styles.eventAction}>
+                  <Text style={[styles.eventActionText, { color: getEventColor(event.type) }]}>
+                    {event.vault ? 'View Vault' : 'Details'}
+                  </Text>
+                </Pressable>
+              </View>
+            </Card>
+          ))}
+        </View>
+
+        <View style={styles.legend}>
+          <Text style={styles.legendTitle}>Event Types</Text>
+          <View style={styles.legendItems}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} />
+              <Text style={styles.legendText}>Payout received</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#3B82F6' }]} />
+              <Text style={styles.legendText}>Payout created</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#EAB308' }]} />
+              <Text style={styles.legendText}>Scheduled payout</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+              <Text style={styles.legendText}>Payout expiring</Text>
             </View>
           </View>
         </View>
@@ -352,7 +434,7 @@ export default function CalendarScreen() {
   };
 
   const renderListView = () => {
-    const groupedEvents = calendarEvents.reduce((acc, event) => {
+    const groupedEvents = events.reduce((acc, event) => {
       const date = event.date === formatDate(new Date()) ? 'Today' :
                    event.date === formatDate(new Date(Date.now() + 86400000)) ? 'Tomorrow' :
                    event.date;
@@ -361,7 +443,7 @@ export default function CalendarScreen() {
       }
       acc[date].push(event);
       return acc;
-    }, {} as Record<string, typeof calendarEvents>);
+    }, {} as Record<string, Event[]>);
 
     return (
       <View style={styles.listViewContainer}>
@@ -375,45 +457,44 @@ export default function CalendarScreen() {
             </View>
             <View style={styles.eventsContainer}>
               {dateEvents.map((event) => (
-                <Pressable key={event.id} onPress={() => handleEventPress(event)}>
-                  <Card style={[
-                    styles.eventCard, 
-                    { backgroundColor: getEventBackground(event.type) },
-                    event.status === 'unread' && styles.unreadEventCard
-                  ]}>
-                    <View style={styles.eventContent}>
-                      <View style={[styles.eventIcon, { backgroundColor: getEventBackground(event.type) }]}>
-                        {getEventIcon(event.type)}
-                      </View>
-                      <View style={styles.eventDetails}>
-                        <View style={styles.eventTitleRow}>
-                          <Text style={styles.eventTitle}>{event.title}</Text>
-                          {event.status === 'unread' && (
-                            <View style={styles.unreadBadge}>
-                              <Bell size={12} color={colors.primary} />
-                            </View>
-                          )}
-                        </View>
-                        <Text style={styles.eventDescription}>{event.description} • {event.time}</Text>
-                        {event.amount && (
-                          <Text style={styles.eventAmount}>{event.amount}</Text>
-                        )}
-                      </View>
+                <Card key={event.id} style={[styles.eventCard, { backgroundColor: getEventBackground(event.type) }]}>
+                  <Pressable style={styles.eventContent}>
+                    <View style={[styles.eventIcon, { backgroundColor: getEventBackground(event.type) }]}>
+                      {getEventIcon(event.type)}
                     </View>
-                  </Card>
-                </Pressable>
+                    <View style={styles.eventDetails}>
+                      <Text style={styles.eventTitle}>{event.title}</Text>
+                      <Text style={styles.eventDescription}>{event.description} • {event.time}</Text>
+                    </View>
+                    <ChevronRight size={20} color={colors.textTertiary} />
+                  </Pressable>
+                </Card>
               ))}
             </View>
           </View>
         ))}
 
-        {calendarEvents.length === 0 && (
-          <View style={styles.noEventsContainer}>
-            <CalendarIcon size={64} color={colors.textTertiary} />
-            <Text style={styles.noEventsTitle}>No events yet</Text>
-            <Text style={styles.noEventsSubtext}>Your payout events will appear here</Text>
+        <View style={styles.legend}>
+          <Text style={styles.legendTitle}>Event Types</Text>
+          <View style={styles.legendItems}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} />
+              <Text style={styles.legendText}>Payout received</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#3B82F6' }]} />
+              <Text style={styles.legendText}>Payout created</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#EAB308' }]} />
+              <Text style={styles.legendText}>Scheduled payout</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+              <Text style={styles.legendText}>Payout expiring</Text>
+            </View>
           </View>
-        )}
+        </View>
       </View>
     );
   };
@@ -440,7 +521,7 @@ export default function CalendarScreen() {
       </View>
 
       <View style={styles.viewSelector}>
-        {(['month', 'list'] as ViewType[]).map((view) => (
+        {(['month', 'week', 'list'] as ViewType[]).map((view) => (
           <Pressable
             key={view}
             style={[
@@ -461,6 +542,7 @@ export default function CalendarScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {activeView === 'month' && renderMonthView()}
+        {activeView === 'week' && renderWeekView()}
         {activeView === 'list' && renderListView()}
       </ScrollView>
     </SafeAreaView>
@@ -510,16 +592,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: colors.textSecondary,
   },
   viewSelector: {
     flexDirection: 'row',
@@ -579,7 +651,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    position: 'relative',
   },
   selectedDay: {
     backgroundColor: colors.primary,
@@ -602,22 +673,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     gap: 2,
     marginTop: 4,
-    alignItems: 'center',
   },
   eventDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-  },
-  unreadEventDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  moreEventsText: {
-    fontSize: 8,
-    color: colors.textSecondary,
-    marginLeft: 2,
   },
   monthHeader: {
     flexDirection: 'row',
@@ -638,6 +698,53 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: colors.backgroundTertiary,
+  },
+  weekHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  weekTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  weekDaysGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 16,
+  },
+  weekDayCell: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    height: 80,
+  },
+  weekDayName: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  weekDayNumber: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  selectedWeekDay: {
+    backgroundColor: colors.primary,
+  },
+  selectedWeekDayText: {
+    color: '#FFFFFF',
+  },
+  weekEventDots: {
+    flexDirection: 'row',
+    gap: 2,
+    marginTop: 4,
   },
   selectedDateEvents: {
     padding: 16,
@@ -686,10 +793,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 8,
     borderWidth: 0,
   },
-  unreadEventCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-  },
   eventContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -706,57 +809,23 @@ const createStyles = (colors: any) => StyleSheet.create({
   eventDetails: {
     flex: 1,
   },
-  eventTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
   eventTitle: {
     fontSize: 14,
     fontWeight: '500',
     color: colors.text,
-    flex: 1,
-  },
-  unreadBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.backgroundTertiary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
+    marginBottom: 4,
   },
   eventDescription: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 4,
   },
-  eventAmount: {
+  eventAction: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  eventActionText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  noEventsContainer: {
-    alignItems: 'center',
-    padding: 40,
-  },
-  noEventsText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginTop: 16,
-  },
-  noEventsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  noEventsSubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
+    fontWeight: '500',
   },
   legend: {
     padding: 16,
