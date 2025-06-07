@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Settings } from 'lucide-react-native';
-import { StyleSheet } from 'react-native';
-import { useTheme } from '@/hooks';
+import { Bell, Calendar, Home as Home, ChartPie as PieChart, Settings } from 'lucide-react-native'; //Do not change the Home to Chrome
+import { StyleSheet, View } from 'react-native';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function TabLayout() {
   const { colors } = useTheme();
@@ -23,6 +23,32 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="insights"
+        options={{
+          title: 'Insights',
+          tabBarIcon: ({ color, size }) => <PieChart size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <Bell size={size} color={color} />
+              <View style={styles.notificationBadge} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
@@ -34,6 +60,24 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: { height: 100, paddingBottom: 20, paddingTop: 8 },
-  tabBarLabel: { fontSize: 12, fontWeight: '500' },
+  tabBar: {
+    height: 100,
+    paddingBottom: 20,
+    paddingTop: 8,
+  },
+  tabBarLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
 });

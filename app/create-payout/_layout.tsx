@@ -1,11 +1,16 @@
 import { Stack } from 'expo-router';
-import { useTheme } from '@/hooks';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function CreatePayoutLayout() {
   const { colors } = useTheme();
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.backgroundSecondary } }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.backgroundSecondary },
+      }}
+    >
       <Stack.Screen name="amount" />
       <Stack.Screen name="schedule" />
       <Stack.Screen name="destination" />
