@@ -61,6 +61,7 @@ export default function HomeScreen() {
     }
   };
   const handleViewAllPayouts = () => router.push('/all-payouts');
+  const handleViewProfile = () => router.push('/profile');
 
   const handleTransactionPress = (transaction) => {
     setSelectedTransaction({
@@ -159,12 +160,14 @@ export default function HomeScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <InitialsAvatar 
-              firstName={firstName} 
-              lastName={lastName} 
-              size={48}
-              fontSize={18}
-            />
+            <Pressable onPress={handleViewProfile}>
+              <InitialsAvatar 
+                firstName={firstName} 
+                lastName={lastName} 
+                size={48}
+                fontSize={18}
+              />
+            </Pressable>
             <Text style={styles.date}>{formatCurrentDate(currentDate)}</Text>
           </View>
           <View style={styles.greetingContainer}>
