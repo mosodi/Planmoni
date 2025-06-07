@@ -14,7 +14,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 export default function CalendarScreen() {
   const { width } = useWindowDimensions();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { events, isLoading, error, refreshEvents } = useCalendarEvents();
   const [activeView, setActiveView] = useState<ViewType>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -45,17 +45,59 @@ export default function CalendarScreen() {
   const getEventIcon = (type: CalendarEvent['type']) => {
     switch (type) {
       case 'completed':
-        return <Check size={20} color="#22C55E" />;
+        return <Check size={20} color="#FFFFFF" />;
       case 'pending':
       case 'scheduled':
-        return <Clock size={20} color="#3B82F6" />;
+        return <Clock size={20} color="#FFFFFF" />;
       case 'failed':
       case 'expiring':
-        return <AlertTriangle size={20} color="#EF4444" />;
+        return <AlertTriangle size={20} color="#FFFFFF" />;
     }
   };
 
-  const getEventColor = (type: CalendarEvent['type']) => {
+  const getEventColors = (type: CalendarEvent['type']) => {
+    const baseColors = {
+      completed: {
+        primary: '#22C55E',
+        light: isDark ? '#166534' : '#F0FDF4',
+        border: isDark ? '#22C55E' : '#BBF7D0',
+        text: isDark ? '#DCFCE7' : '#166534',
+        icon: '#FFFFFF'
+      },
+      pending: {
+        primary: '#3B82F6',
+        light: isDark ? '#1E3A8A' : '#F0F9FF',
+        border: isDark ? '#3B82F6' : '#BFDBFE',
+        text: isDark ? '#DBEAFE' : '#1E3A8A',
+        icon: '#FFFFFF'
+      },
+      scheduled: {
+        primary: '#EAB308',
+        light: isDark ? '#92400E' : '#FEFCE8',
+        border: isDark ? '#EAB308' : '#FEF08A',
+        text: isDark ? '#FEF3C7' : '#92400E',
+        icon: '#FFFFFF'
+      },
+      failed: {
+        primary: '#EF4444',
+        light: isDark ? '#991B1B' : '#FEF2F2',
+        border: isDark ? '#EF4444' : '#FECACA',
+        text: isDark ? '#FEE2E2' : '#991B1B',
+        icon: '#FFFFFF'
+      },
+      expiring: {
+        primary: '#EF4444',
+        light: isDark ? '#991B1B' : '#FEF2F2',
+        border: isDark ? '#EF4444' : '#FECACA',
+        text: isDark ? '#FEE2E2' : '#991B1B',
+        icon: '#FFFFFF'
+      }
+    };
+
+    return baseColors[type];
+  };
+
+  const getEventDotColor = (type: CalendarEvent['type']) => {
     switch (type) {
       case 'completed':
         return '#22C55E'; // Green for completed payouts
@@ -66,20 +108,6 @@ export default function CalendarScreen() {
       case 'failed':
       case 'expiring':
         return '#EF4444'; // Red for failed/expiring payouts
-    }
-  };
-
-  const getEventBackground = (type: CalendarEvent['type']) => {
-    switch (type) {
-      case 'completed':
-        return '#F0FDF4';
-      case 'pending':
-        return '#F0F9FF';
-      case 'scheduled':
-        return '#FEFCE8';
-      case 'failed':
-      case 'expiring':
-        return '#FEF2F2';
     }
   };
 
@@ -125,7 +153,7 @@ export default function CalendarScreen() {
     return events.filter(event => event.date === dateString);
   };
 
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, isDark);
 
   if (isLoading) {
     return (
@@ -244,15 +272,20 @@ export default function CalendarScreen() {
                   ]}>{date.getDate()}</Text>
                   {dayEvents.length > 0 && (
                     <View style={styles.eventDots}>
-                      {dayEvents.slice(0, 2).map((event, index) => (
+                      {dayEvents.slice(0, 3).map((event, index) => (
                         <View
                           key={index}
                           style={[
                             styles.eventDot,
-                            { backgroundColor: getEventColor(event.type) },
+                            { backgroundColor: getEventDotColor(event.type) },
                           ]}
                         />
                       ))}
+                      {dayEvents.length > 3 && (
+                        <View style={styles.moreEventsDot}>
+                          <Text style={styles.moreEventsText}>+{dayEvents.length - 3}</Text>
+                        </View>
+                      )}
                     </View>
                   )}
                 </Pressable>
@@ -271,36 +304,43 @@ export default function CalendarScreen() {
             </View>
           </View>
 
-          {getEventsForDate(selectedDate).map(event => (
-            <Card key={event.id} style={[styles.eventCard, { backgroundColor: getEventBackground(event.type) }]}>
-              <View style={styles.eventContent}>
-                <View style={[styles.eventIcon, { backgroundColor: getEventBackground(event.type) }]}>
-                  {getEventIcon(event.type)}
+          {getEventsForDate(selectedDate).map(event => {
+            const eventColors = getEventColors(event.type);
+            return (
+              <Card key={event.id} style={[styles.eventCard, { 
+                backgroundColor: eventColors.light,
+                borderColor: eventColors.border,
+                borderWidth: 1,
+              }]}>
+                <View style={styles.eventContent}>
+                  <View style={[styles.eventIcon, { backgroundColor: eventColors.primary }]}>
+                    {getEventIcon(event.type)}
+                  </View>
+                  <View style={styles.eventDetails}>
+                    <Text style={[styles.eventTitle, { color: eventColors.text }]}>{event.title}</Text>
+                    <Text style={[styles.eventDescription, { color: colors.textSecondary }]}>
+                      {event.description} • {event.time}
+                    </Text>
+                  </View>
+                  <Pressable 
+                    style={[styles.eventAction, { backgroundColor: eventColors.primary }]}
+                    onPress={() => {
+                      if (event.payout_plan_id) {
+                        router.push({
+                          pathname: '/view-payout',
+                          params: { id: event.payout_plan_id }
+                        });
+                      }
+                    }}
+                  >
+                    <Text style={styles.eventActionText}>
+                      View
+                    </Text>
+                  </Pressable>
                 </View>
-                <View style={styles.eventDetails}>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <Text style={styles.eventDescription}>
-                    {event.description} • {event.time}
-                  </Text>
-                </View>
-                <Pressable 
-                  style={styles.eventAction}
-                  onPress={() => {
-                    if (event.payout_plan_id) {
-                      router.push({
-                        pathname: '/view-payout',
-                        params: { id: event.payout_plan_id }
-                      });
-                    }
-                  }}
-                >
-                  <Text style={[styles.eventActionText, { color: getEventColor(event.type) }]}>
-                    {event.vault ? 'View Plan' : 'Details'}
-                  </Text>
-                </Pressable>
-              </View>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </View>
 
         <View style={styles.legend}>
@@ -386,7 +426,7 @@ export default function CalendarScreen() {
                         key={index}
                         style={[
                           styles.eventDot,
-                          { backgroundColor: getEventColor(event.type) },
+                          { backgroundColor: getEventDotColor(event.type) },
                         ]}
                       />
                     ))}
@@ -409,36 +449,43 @@ export default function CalendarScreen() {
             </View>
           </View>
 
-          {getEventsForDate(selectedDate).map(event => (
-            <Card key={event.id} style={[styles.eventCard, { backgroundColor: getEventBackground(event.type) }]}>
-              <View style={styles.eventContent}>
-                <View style={[styles.eventIcon, { backgroundColor: getEventBackground(event.type) }]}>
-                  {getEventIcon(event.type)}
+          {getEventsForDate(selectedDate).map(event => {
+            const eventColors = getEventColors(event.type);
+            return (
+              <Card key={event.id} style={[styles.eventCard, { 
+                backgroundColor: eventColors.light,
+                borderColor: eventColors.border,
+                borderWidth: 1,
+              }]}>
+                <View style={styles.eventContent}>
+                  <View style={[styles.eventIcon, { backgroundColor: eventColors.primary }]}>
+                    {getEventIcon(event.type)}
+                  </View>
+                  <View style={styles.eventDetails}>
+                    <Text style={[styles.eventTitle, { color: eventColors.text }]}>{event.title}</Text>
+                    <Text style={[styles.eventDescription, { color: colors.textSecondary }]}>
+                      {event.description} • {event.time}
+                    </Text>
+                  </View>
+                  <Pressable 
+                    style={[styles.eventAction, { backgroundColor: eventColors.primary }]}
+                    onPress={() => {
+                      if (event.payout_plan_id) {
+                        router.push({
+                          pathname: '/view-payout',
+                          params: { id: event.payout_plan_id }
+                        });
+                      }
+                    }}
+                  >
+                    <Text style={styles.eventActionText}>
+                      View
+                    </Text>
+                  </Pressable>
                 </View>
-                <View style={styles.eventDetails}>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <Text style={styles.eventDescription}>
-                    {event.description} • {event.time}
-                  </Text>
-                </View>
-                <Pressable 
-                  style={styles.eventAction}
-                  onPress={() => {
-                    if (event.payout_plan_id) {
-                      router.push({
-                        pathname: '/view-payout',
-                        params: { id: event.payout_plan_id }
-                      });
-                    }
-                  }}
-                >
-                  <Text style={[styles.eventActionText, { color: getEventColor(event.type) }]}>
-                    {event.vault ? 'View Plan' : 'Details'}
-                  </Text>
-                </Pressable>
-              </View>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </View>
 
         <View style={styles.legend}>
@@ -489,30 +536,39 @@ export default function CalendarScreen() {
               </View>
             </View>
             <View style={styles.eventsContainer}>
-              {dateEvents.map((event) => (
-                <Card key={event.id} style={[styles.eventCard, { backgroundColor: getEventBackground(event.type) }]}>
-                  <Pressable 
-                    style={styles.eventContent}
-                    onPress={() => {
-                      if (event.payout_plan_id) {
-                        router.push({
-                          pathname: '/view-payout',
-                          params: { id: event.payout_plan_id }
-                        });
-                      }
-                    }}
-                  >
-                    <View style={[styles.eventIcon, { backgroundColor: getEventBackground(event.type) }]}>
-                      {getEventIcon(event.type)}
-                    </View>
-                    <View style={styles.eventDetails}>
-                      <Text style={styles.eventTitle}>{event.title}</Text>
-                      <Text style={styles.eventDescription}>{event.description} • {event.time}</Text>
-                    </View>
-                    <ChevronRight size={20} color={colors.textTertiary} />
-                  </Pressable>
-                </Card>
-              ))}
+              {dateEvents.map((event) => {
+                const eventColors = getEventColors(event.type);
+                return (
+                  <Card key={event.id} style={[styles.eventCard, { 
+                    backgroundColor: eventColors.light,
+                    borderColor: eventColors.border,
+                    borderWidth: 1,
+                  }]}>
+                    <Pressable 
+                      style={styles.eventContent}
+                      onPress={() => {
+                        if (event.payout_plan_id) {
+                          router.push({
+                            pathname: '/view-payout',
+                            params: { id: event.payout_plan_id }
+                          });
+                        }
+                      }}
+                    >
+                      <View style={[styles.eventIcon, { backgroundColor: eventColors.primary }]}>
+                        {getEventIcon(event.type)}
+                      </View>
+                      <View style={styles.eventDetails}>
+                        <Text style={[styles.eventTitle, { color: eventColors.text }]}>{event.title}</Text>
+                        <Text style={[styles.eventDescription, { color: colors.textSecondary }]}>
+                          {event.description} • {event.time}
+                        </Text>
+                      </View>
+                      <ChevronRight size={20} color={colors.textTertiary} />
+                    </Pressable>
+                  </Card>
+                );
+              })}
             </View>
           </View>
         ))}
@@ -592,7 +648,7 @@ export default function CalendarScreen() {
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
@@ -727,6 +783,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
+    position: 'relative',
   },
   selectedDay: {
     backgroundColor: colors.primary,
@@ -749,11 +806,24 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     gap: 2,
     marginTop: 4,
+    alignItems: 'center',
   },
   eventDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  moreEventsDot: {
+    backgroundColor: colors.textTertiary,
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    marginLeft: 2,
+  },
+  moreEventsText: {
+    fontSize: 8,
+    color: colors.surface,
+    fontWeight: '600',
   },
   monthHeader: {
     flexDirection: 'row',
@@ -837,14 +907,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginRight: 8,
   },
   eventCount: {
-    backgroundColor: '#E0F2FE',
+    backgroundColor: isDark ? colors.backgroundTertiary : '#E0F2FE',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   eventCountText: {
     fontSize: 12,
-    color: '#0284C7',
+    color: isDark ? colors.textSecondary : '#0284C7',
     fontWeight: '500',
   },
   dateGroup: {
@@ -866,13 +936,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 16,
   },
   eventCard: {
-    marginBottom: 8,
-    borderWidth: 0,
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   eventContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 16,
   },
   eventIcon: {
     width: 40,
@@ -887,21 +958,21 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   eventTitle: {
     fontSize: 14,
-    fontWeight: '500',
-    color: colors.text,
+    fontWeight: '600',
     marginBottom: 4,
   },
   eventDescription: {
     fontSize: 12,
-    color: colors.textSecondary,
   },
   eventAction: {
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 6,
   },
   eventActionText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   legend: {
     padding: 16,
