@@ -62,6 +62,10 @@ export default function PaymentMethodsScreen() {
     router.push('/add-ussd');
   };
 
+  const handleLinkAccount = () => {
+    router.push('/linked-accounts');
+  };
+
   const styles = createStyles(colors);
 
   return (
@@ -150,6 +154,22 @@ export default function PaymentMethodsScreen() {
               <View style={styles.methodInfo}>
                 <Text style={styles.methodTitle}>USSD</Text>
                 <Text style={styles.methodSubtitle}>Use USSD Code to pay</Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={colors.textTertiary} />
+          </Pressable>
+
+          <Pressable 
+            style={styles.newMethodButton}
+            onPress={handleLinkAccount}
+          >
+            <View style={styles.methodLeft}>
+              <View style={styles.methodIconContainer}>
+                <Smartphone size={24} color={colors.primary} />
+              </View>
+              <View style={styles.methodInfo}>
+                <Text style={styles.methodTitle}>Link Account</Text>
+                <Text style={styles.methodSubtitle}>Link your bank account to pay</Text>
               </View>
             </View>
             <ChevronRight size={20} color={colors.textTertiary} />

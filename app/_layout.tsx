@@ -13,6 +13,7 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
+import React from 'react';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -44,6 +45,38 @@ function RootLayoutNav() {
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
+        {/* Auth Screens */}
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+
+        {/* App Screens */}
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen name="add-funds" />
+        <Stack.Screen name="all-payouts" />
+        <Stack.Screen name="change-password" />
+        <Stack.Screen name="create-payout" />
+        {/* <Stack.Screen name="deposit-flow/amount" />
+        <Stack.Screen name="deposit-flow/payment-methods" /> */}
+        <Stack.Screen name="linked-accounts" />
+        <Stack.Screen name="pause-confirmation" />
+        <Stack.Screen name="referral" />
+        <Stack.Screen name="transaction-limits" />
+        <Stack.Screen name="transactions" />
+        <Stack.Screen name="two-factor-auth" />
+        <Stack.Screen name="view-payout" />
+
+        {/* Deposit Flow Screens */}
+        <Stack.Screen name="deposit-flow/amount" />
+        <Stack.Screen name="deposit-flow/authorization" />
+        <Stack.Screen name="deposit-flow/payment-methods" />
+        <Stack.Screen name="deposit-flow/success" />
+
+        {/* Error fallback */}
+        <Stack.Screen name="+not-found" options={{ title: 'Page Not Found' }} />
+      </Stack>
+
+      {/* <Stack screenOptions={{ headerShown: false }}>
         {session ? (
           <>
             <Stack.Screen name="(tabs)\" options={{ headerShown: false }} />
@@ -68,7 +101,7 @@ function RootLayoutNav() {
           </>
         )}
         <Stack.Screen name="+not-found" options={{ title: 'Page Not Found' }} />
-      </Stack>
+      </Stack> */}
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </>
   );
